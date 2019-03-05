@@ -1,0 +1,103 @@
+1. 添加控制抓包功能的类成员，类型为PcapPacket *，如果需要抓包的函数是静态的，需要添加静态成员
+	例如：
+	static PcapPacket *m_JobEth2PpcCap;
+2. 类成员初始化
+	例如：
+	PcapPacket* CPhyOpcbPtpV3::m_Eth2PpcCap = NULL;
+3. 在需要抓包的地方添加抓包代码。抓原始报文使用wirte(),需要添加eth头使用writeAddEthHead()，需要替换以太网类型使用writeReplaceEthType()，需要写调试字符串使用writeString()
+	例如：
+	if(m_JobEth2PpcCap)
+	{
+		m_Eth2PpcCap->writeReplaceEthType(buffer, length, ETHTYPE_FAST_ETH);
+	}
+
+4. 添加add/start/stop/remove函数，分别实现添加抓包功能、启动抓包、停止抓包并立刻写入到文件、删除抓包文件并关闭抓包功能
+	例如：
+	void CPhyOpcbPtpV3::AddEth2PpcCapturePacket(CBString filename, ULONG maxPacketNum, ULONG64 maxFileByte)
+	{
+		lock_mutex(m_hMutexCfg);
+		if(NULL == m_Eth2PpcCap)
+		{
+			m_Eth2PpcCap = new PcapPacket(filename, maxPacketNum, maxFileByte);
+		}
+		unlock_mutex(m_hMutexCfg);
+		
+		return;
+	}
+
+	void CPhyOpcbPtpV3::startEth2PpcCapturePacket()
+	{
+		lock_mutex(m_hMutexCfg);
+		if(m_Eth2PpcCap)
+		{
+			m_Eth2PpcCap->open();
+		}
+		unlock_mutex(m_hMutexCfg);
+
+		return;
+	}
+
+	void CPhyOpcbPtpV3::stopEth2PpcCapturePacket()
+	{
+		lock_mutex(m_hMutexCfg);
+		if(m_Eth2PpcCap)
+		{
+			m_Eth2PpcCap->close();
+		}
+		unlock_mutex(m_hMutexCfg);
+
+		return;
+	}
+
+	void CPhyOpcbPtpV3::RemoveEth2PpcCapturePacket()
+	{
+		lock_mutex(m_hMutexCfg);
+		if(m_Eth2PpcCap)
+		{
+			delete m_Eth2PpcCap;
+			m_Eth2PpcCap = NULL;
+		}
+		unlock_mutex(m_hMutexCfg);
+
+		return;
+	}
+5. 添加对应的C函数，方便调试
+	例如：
+	extern "C"
+	{
+	void AddOpctPtpv3PhyEth2PpcCapturePacket(const char * filename, ULONG maxPacketNum, ULONG64 maxFileByte)
+	{
+		CPhyOpcbPtpV3 * opcbPtpv3 = NULL;
+		opcbPtpv3 = CPhyOpcbPtpV3::GetInstance();
+		if(NULL != opcbPtpv3)
+		{
+			if(NULL != filename)
+			{
+				opcbPtpv3->AddEth2PpcCapturePacket(LOG_PACKET_FILE_DIR + filename, maxPacketNum, maxFileByte);
+			}
+			else
+			{
+				opcbPtpv3->AddEth2PpcCapturePacket();
+			}
+		}
+		return;
+	}
+
+	void startOpctPtpv3PhyEth2PpcCapturePacket()
+	{
+		CPhyOpcbPtpV3::GetInstance()->startEth2PpcCapturePacket();
+		return;
+	}
+
+	void stopOpctPtpv3PhyEth2PpcCapturePacket()
+	{
+		CPhyOpcbPtpV3::GetInstance()->stopEth2PpcCapturePacket();
+		return;
+	}
+
+	void RemoveOpctPtpv3PhyEth2PpcCapturePacket()
+	{
+		CPhyOpcbPtpV3::GetInstance()->RemoveEth2PpcCapturePacket();
+		return;
+	}
+	}
