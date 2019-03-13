@@ -5,7 +5,7 @@ do
         第一个参数是协议名称会体现在过滤器中  
         第二个参数是协议的描述信息，无关紧要  
     --]]  
-    local PtpSendPtpPktAsk = Proto("PtpSendPtpPktAsk", "PtpSendPtpPktAsk")  
+    local PtpSendPtpPktAsk = Proto("SendPtpV3Pkt", "SendPtpV3Pkt")  
 	
 	--解析PtpSendPtpPktAsk_send_flag值代表的含义
 	local PtpSendPtpPktAsk_send_flag_Em = {
@@ -592,9 +592,11 @@ do
 			offset = offset+2
 			PtpSendPtpPktAsk_PortCfgTree:set_len(offset - PtpSendPtpPktAsk_PortCfgTree_StartOffset)
 			
-			local ptpDissector = DissectorTable.get("udp.port"):get_dissector(320)
-			ptpDissector:call(tvb:range(offset):tvb(), pinfo, PtpSendPtpPktAsk_tree)
-			offset = offset+PtpMessage_len
+			if PtpMessage_len>0 then
+				local ptpDissector = DissectorTable.get("udp.port"):get_dissector(320)
+				ptpDissector:call(tvb:range(offset, PtpMessage_len):tvb(), pinfo, PtpSendPtpPktAsk_tree)
+				offset = offset+PtpMessage_len
+			end
 			
 			PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_pad, tvb:range(offset, 128 - PtpMessage_len))
 			offset = offset+ 128 - PtpMessage_len
@@ -918,8 +920,133 @@ do
 				offset = offset+4
 			end
 			
-		--elseif tvb:range(offset - 4,4):uint()==33 then
-		--elseif tvb:range(offset - 4,4):uint()==34 then
+		elseif tvb:range(offset - 4,4):uint()==33 then
+			pinfo.cols.protocol:set("PtpDestMacAsk")  
+			pinfo.cols.info:set("Dest Mac Ask")
+			
+			local PtpSendPtpPktAsk_tree = ptp_fast_eth_tree:add(PtpSendPtpPktAsk, tvb:range(offset))
+			local PtpMessage_len = tvb:range(offset, 2):uint()
+			PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_len, tvb:range(offset, 2))
+			offset = offset+2 
+			PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_channel_index, tvb:range(offset, 2))
+			offset = offset+2 
+			PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_slot, tvb:range(offset, 4))
+			offset = offset+4
+			
+			local PtpSendPtpPktAsk_PortCfgTree_StartOffset = offset
+			local PtpSendPtpPktAsk_PortCfgTree = PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_PortCfg, tvb:range(offset), "MsgPtpPortCfg")
+			local PtpSendPtpPktAsk_PortCfg_IfIndex_Tree = PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_IfIndex, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_Equipment, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_Control, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_Card, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_PortType_Vlan, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_PortType_Aggregation, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_PortType_Location, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_PortType_Layer, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_Port, tvb:range(offset, 4))
+			offset = offset+4
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_EncapMode, tvb:range(offset, 1))
+			offset = offset+1
+			offset = offset+3
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_SpVlanTPID, tvb:range(offset, 4))
+			offset = offset+4
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_SpVlanId, tvb:range(offset, 4))
+			offset = offset+4
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_SpVlanPri, tvb:range(offset, 1))
+			offset = offset+1
+			offset = offset+3
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_CeVlanTPID, tvb:range(offset, 4))
+			offset = offset+4
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_CeVlanId, tvb:range(offset, 4))
+			offset = offset+4
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_CeVlanPri, tvb:range(offset, 1))
+			offset = offset+1
+			offset = offset+3
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_L2IpAddr, tvb:range(offset, 4))
+			offset = offset+4
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_Macaddr, tvb:range(offset, 6))
+			offset = offset+6
+			offset = offset+2
+			PtpSendPtpPktAsk_PortCfgTree:set_len(offset - PtpSendPtpPktAsk_PortCfgTree_StartOffset)
+			
+			if PtpMessage_len>0 then
+				local ptpDissector = DissectorTable.get("udp.port"):get_dissector(320)
+				ptpDissector:call(tvb:range(offset, PtpMessage_len):tvb(), pinfo, PtpSendPtpPktAsk_tree)
+				offset = offset+PtpMessage_len
+			end
+			
+			PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_pad, tvb:range(offset, 128 - PtpMessage_len))
+			offset = offset+ 128 - PtpMessage_len
+			
+			PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_send_flag, tvb:range(offset, 1))
+			offset = offset+1
+			offset = offset+3
+			PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_ps_pAddr, tvb:range(offset, 4))
+			offset = offset+4
+		elseif tvb:range(offset - 4,4):uint()==34 then
+			pinfo.cols.protocol:set("PtpDestMacRsp")  
+			pinfo.cols.info:set("Dest Mac Rsp")
+			
+			local PtpSendPtpPktAsk_tree = ptp_fast_eth_tree:add(PtpSendPtpPktAsk, tvb:range(offset))
+			local PtpMessage_len = tvb:range(offset, 2):uint()
+			PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_len, tvb:range(offset, 2))
+			offset = offset+2 
+			PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_channel_index, tvb:range(offset, 2))
+			offset = offset+2 
+			PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_slot, tvb:range(offset, 4))
+			offset = offset+4
+			
+			local PtpSendPtpPktAsk_PortCfgTree_StartOffset = offset
+			local PtpSendPtpPktAsk_PortCfgTree = PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_PortCfg, tvb:range(offset), "MsgPtpPortCfg")
+			local PtpSendPtpPktAsk_PortCfg_IfIndex_Tree = PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_IfIndex, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_Equipment, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_Control, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_Card, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_PortType_Vlan, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_PortType_Aggregation, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_PortType_Location, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_PortType_Layer, tvb:range(offset, 4))
+			PtpSendPtpPktAsk_PortCfg_IfIndex_Tree:add(IfIndexBitFiled_Port, tvb:range(offset, 4))
+			offset = offset+4
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_EncapMode, tvb:range(offset, 1))
+			offset = offset+1
+			offset = offset+3
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_SpVlanTPID, tvb:range(offset, 4))
+			offset = offset+4
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_SpVlanId, tvb:range(offset, 4))
+			offset = offset+4
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_SpVlanPri, tvb:range(offset, 1))
+			offset = offset+1
+			offset = offset+3
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_CeVlanTPID, tvb:range(offset, 4))
+			offset = offset+4
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_CeVlanId, tvb:range(offset, 4))
+			offset = offset+4
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_CeVlanPri, tvb:range(offset, 1))
+			offset = offset+1
+			offset = offset+3
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_L2IpAddr, tvb:range(offset, 4))
+			offset = offset+4
+			PtpSendPtpPktAsk_PortCfgTree:add(PtpSendPtpPktAsk_PortCfg_Macaddr, tvb:range(offset, 6))
+			offset = offset+6
+			offset = offset+2
+			PtpSendPtpPktAsk_PortCfgTree:set_len(offset - PtpSendPtpPktAsk_PortCfgTree_StartOffset)
+			
+			if PtpMessage_len>0 then
+				local ptpDissector = DissectorTable.get("udp.port"):get_dissector(320)
+				ptpDissector:call(tvb:range(offset, PtpMessage_len):tvb(), pinfo, PtpSendPtpPktAsk_tree)
+				offset = offset+PtpMessage_len
+			end
+			
+			PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_pad, tvb:range(offset, 128 - PtpMessage_len))
+			offset = offset+ 128 - PtpMessage_len
+			
+			PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_send_flag, tvb:range(offset, 1))
+			offset = offset+1
+			offset = offset+3
+			PtpSendPtpPktAsk_tree:add(PtpSendPtpPktAsk_ps_pAddr, tvb:range(offset, 4))
+			offset = offset+4
+			
 		--elseif tvb:range(offset - 4,4):uint()==35 then
 		--elseif tvb:range(offset - 4,4):uint()==36 then
 		--elseif tvb:range(offset - 4,4):uint()==37 then
