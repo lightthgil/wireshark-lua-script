@@ -428,6 +428,12 @@ do
 		PtpSetCardStat_holdOverStat
 	}
 	
+	--PtpNoticeOffset
+	local PtpNoticeOffset = Proto("PtpNoticeOffset", "PtpNoticeOffset")
+	local PtpNoticeOffset_offset = ProtoField.int64("PtpNoticeOffset.offset", "offset", base.DEC)
+	PtpNoticeOffset.fields = {
+		PtpNoticeOffset_offset
+	}
 	--PtpDestIp
 	local PtpDestIp = Proto("PtpDestIp", "PtpDestIp")
 	local PtpDestIp_slot = ProtoField.uint32("PtpDestIp.slot", "slot", base.DEC)
@@ -497,6 +503,9 @@ do
 		[36] = "Ptp_SrcIpMacAsk",
 		[37] = "Ptp_SetNeStat",
 		[38] = "Ptp_SetCardStat",
+		[41] = "PtpV3_SendAlm",
+		[42] = "PtpV3_SendGrandMsterStat",
+		[43] = "Ptp_NoticeOffset"
 	}
     --[[  
         下面定义字段  
@@ -694,7 +703,8 @@ do
 			PtpTime_ifIndex_tree:add(IfIndexBitFiled_Port, tvb:range(offset, 4))
 			offset = offset+4
 			offset = offset+4
-			local PtpTime_TsSpecTime_Tree = PtpTime_tree:add(PtpTime_TsSpecTime, tvb:range(offset, 24), "time")
+			offset = offset+4
+			local PtpTime_TsSpecTime_Tree = PtpTime_tree:add(PtpTime_TsSpecTime, tvb:range(offset,16), "time")
 			PtpTime_TsSpecTime_Tree:add(PtpTime_TsSpecTime_isnegative, tvb:range(offset, 1))
 			offset = offset+1
 			offset = offset+3
@@ -1060,9 +1070,20 @@ do
 			PtpSetCardStat_tree:add(PtpSetCardStat_holdOverStat, tvb:range(offset, 1))
 			offset = offset+1
 			offset = offset+1
-		end
 		--elseif tvb:range(offset - 4,4):uint()==39 then
 		--elseif tvb:range(offset - 4,4):uint()==40 then
+		--elseif tvb:range(offset - 4,4):uint()==41 then
+		--elseif tvb:range(offset - 4,4):uint()==42 then
+		elseif tvb:range(offset - 4,4):uint()==43 then
+			pinfo.cols.protocol:set("PtpNoticeOffset")  
+			pinfo.cols.info:set("Ptp Notice Offset")
+			local PtpNoticeOffset_tree_StartOffset = offset
+			local PtpNoticeOffset_tree = ptp_fast_eth_tree:add(PtpNoticeOffset, tvb:range(offset))
+			PtpNoticeOffset_tree:add(PtpNoticeOffset_offset, tvb:range(offset, 6))
+			offset = offset+6
+			offset = offset+2
+			PtpNoticeOffset_tree:set_len(offset - PtpNoticeOffset_tree_StartOffset)
+		end
 
 	end
 	
