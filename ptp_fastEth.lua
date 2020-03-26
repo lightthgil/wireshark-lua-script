@@ -146,7 +146,7 @@ do
 	
 	--PtpEvtIfStatProcAsk
 	local PtpEvtIfStatProcAsk = Proto("PtpEvtIfStatProcAsk", "PtpEvtIfStatProcAsk")
-	local PtpEvtIfStatProcAsk_LinkUp = ProtoField.uint8("PtpEvtIfStatProcAsk.LinkUp", "LinkUp", base.BOOLEAN)
+	local PtpEvtIfStatProcAsk_LinkUp = ProtoField.bool("PtpEvtIfStatProcAsk.LinkUp", "LinkUp", base.BOOLEAN)
 	local PtpEvtIfStatProcAsk_IfIndex = ProtoField.uint32("PtpEvtIfStatProcAsk.IfIndex", "IfIndex", base.HEX)
 	PtpEvtIfStatProcAsk.fields = {
 		PtpEvtIfStatProcAsk_LinkUp,
@@ -434,6 +434,7 @@ do
 	PtpNoticeOffset.fields = {
 		PtpNoticeOffset_offset
 	}
+	
 	--PtpDestIp
 	local PtpDestIp = Proto("PtpDestIp", "PtpDestIp")
 	local PtpDestIp_slot = ProtoField.uint32("PtpDestIp.slot", "slot", base.DEC)
@@ -448,6 +449,13 @@ do
 		PtpDestIp_destIp_ip
 	}
 	
+	--PtpSendGrandMsterStat
+	local PtpSendGrandMsterStat = Proto("PtpSendGrandMsterStat", "PtpSendGrandMsterStat")
+	local PtpSendGrandMsterStat_isGrandmast = ProtoField.bool("PtpSendGrandMsterStat.isGrandmast", "isGrandmast", base.BOOLEAN)
+	PtpSendGrandMsterStat.fields = {
+		PtpSendGrandMsterStat_isGrandmast
+	}
+	
     --[[  
         创建一个新的协议结构 ptp_fast_eth_proto  
         第一个参数是协议名称会体现在过滤器中  
@@ -457,6 +465,7 @@ do
     
 	--解析ptpFastEthType值代表的含义
 	local ptpFastEthIfindexEm = {
+		[0xFFFFFFFC] = "Ptp_EthMsg_To_SlaveOam",
 		[0xFFFFFFFD] = "Ptp_EthMsg_To_AllInterfaceCard",
 		[0xFFFFFFFE] = "Ptp_EthMsg_To_OPCB",
 		[0xFFFFFFFF] = "Ptp_EthMsg_To_AllCards"
@@ -1073,10 +1082,19 @@ do
 		--elseif tvb:range(offset - 4,4):uint()==39 then
 		--elseif tvb:range(offset - 4,4):uint()==40 then
 		--elseif tvb:range(offset - 4,4):uint()==41 then
-		--elseif tvb:range(offset - 4,4):uint()==42 then
+		elseif tvb:range(offset - 4,4):uint()==42 then
+			pinfo.cols.protocol:set("PtpSendGrandMsterStat")  
+			pinfo.cols.info:set("Ptp Send Grand Mster Stat")
+			
+			local PtpSendGrandMsterStat_tree_StartOffset = offset
+			local PtpSendGrandMsterStat_tree = ptp_fast_eth_tree:add(PtpSendGrandMsterStat, tvb:range(offset))
+			PtpSendGrandMsterStat_tree:add(PtpSendGrandMsterStat_isGrandmast, tvb:range(offset, 1))
+			offset = offset+1
+			PtpSendGrandMsterStat_tree:set_len(offset - PtpSendGrandMsterStat_tree_StartOffset)
 		elseif tvb:range(offset - 4,4):uint()==43 then
 			pinfo.cols.protocol:set("PtpNoticeOffset")  
 			pinfo.cols.info:set("Ptp Notice Offset")
+			
 			local PtpNoticeOffset_tree_StartOffset = offset
 			local PtpNoticeOffset_tree = ptp_fast_eth_tree:add(PtpNoticeOffset, tvb:range(offset))
 			PtpNoticeOffset_tree:add(PtpNoticeOffset_offset, tvb:range(offset, 6))
